@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Практическая часть ВКР</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://api-maps.yandex.ru/2.1/?apikey=4b8cccf1-c572-410b-99e5-240e2756f7e1&lang=ru_RU&load=package.full" type="text/javascript"></script>
+</head>
+<body>
+
+<header>
+    <div class="logo">
+        <img src="logo.png" alt="Логотип">
+    </div>
+    <div>
+        <h1>Практическая часть ВКР</h1>
+        <h2>Расчет тарифов на доставку Скоропортящихся продуктов</h2>
+    </div>
+    <nav>
+        <ul>
+            <li><a href="#introduction">Введение</a></li>
+            <li><a href="#inputData">Ввод исходных данных</a></li>
+            <li><a href="#transportParams">Параметры видов транспорта</a></li>
+            <li><a href="#results">Результаты</a></li>
+            <li><a href="#conclusion">Заключение</a></li>
+        </ul>
+    </nav>
+</header>
+
+<section id="introduction">
+    <h2>Введение</h2>
+    <p>Содержание раздела "Введение"</p>
+</section>
+
+<section id="inputData">
+    <h2>Ввод исходных данных</h2>
+    <form id="productForm">
+  <div style="display: flex; flex-wrap: wrap; gap: 20px;">
+    <div class="form-group" style="flex: 1 1 45%;">
+      <label for="productName">Наименование продукта:</label>
+      <input type="text" id="productName" name="productName">
+    </div>
+    <div class="form-group" style="flex: 1 1 45%;">
+      <label for="productWeight">Вес груза (кг):</label>
+      <input type="number" id="productWeight" name="productWeight">
+    </div>
+    <div class="form-group" style="flex: 1 1 45%;">
+      <label for="freezingDegree">Степень заморозки:</label>
+      <select id="freezingDegree" name="freezingDegree">
+        <option value="Свежие">Свежие</option>
+        <option value="Охлажденные">Охлажденные</option>
+        <option value="Глубокая заморозка">Глубокая заморозка</option>
+      </select>
+    </div>
+    <div class="form-group" style="flex: 1 1 45%;">
+      <label for="temperatureMode">Температурный режим перевозки (℃):</label>
+      <input type="text" id="temperatureMode" name="temperatureMode">
+    </div>
+    <div class="form-group" style="flex: 1 1 45%;">
+      <label for="transportTime">Сроки транспортировки (Дней):</label>
+      <input type="number" id="transportTime" name="transportTime">
+    </div>
+    <div class="form-group" style="flex: 1 1 45%;">
+      <label for="coefficient">Коэффициент:</label>
+      <input type="number" id="coefficient" name="coefficient" step="0.01" min="0.1" max="1">
+    </div>
+  </div>
+  <button type="submit" id="saveProduct">Сохранить данные о продукте</button>
+  <button id="downloadProductCsvBtn" style="margin-left: 10px;">Скачать данные в CSV</button>
+  <input type="file" id="productCsvInput" accept=".csv" style="margin-left: 10px;">
+
+</form>
+    <div class="table-container">
+        <table id="productTable">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Наименование продукта</th>
+                    <th>Степень заморозки</th>
+                    <th><span title="Температурный">Температурный режим перевозки </span> </th>
+                    <th>Вес груза (кг)</th>
+                    <th>Сроки транспортировки</th>
+                    <th>Коэффициент</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+
+    <button id="clearTableButton">Очистить таблицу</button>
+</section>
+
+<section id="transportParams">
+  <h2>Параметры маршрутов и база перевозчиков по видам транспорта </h2>
+
+    <!-- Новая сетка 2x2 для транспортных блоков -->
+  <div style="display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: auto auto; gap: 30px; margin-bottom: 40px;">
+
+
+  <!-- Левая колонка -->
+ <div class="transport-block" style="display: flex; flex-direction: column; flex: 1 1 auto;">
+  <h3>Автомобильный транспорт</h3>
+
+  <!-- База перевозчиков -->
+  <div id="carCarrierBlock" style="border: 1px solid #ccc; border-radius: 8px; background: #f8f8f8; margin-bottom: 20px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px;">
+      <strong style="margin: 0;">База перевозчиков (автотранспорт)</strong>
+      <button id="toggleCarrierBlock" style="font-size: 18px; background: none; border: none; cursor: pointer;">➕</button>
+    </div>
+    <div id="carrierControls" style="display: none; padding: 10px; padding-top: 0;">
+      <form id="addCarrierForm" style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 10px;">
+        <input type="text" name="NP" placeholder="Название перевозчика" required>
+        <div style="display: flex; flex-wrap: wrap; gap: 10px;">
+          <input type="number" name="t150" placeholder="<150 км" step="0.1" required>
+          <input type="number" name="t500" placeholder="<500 км" step="0.1" required>
+          <input type="number" name="t1500" placeholder="<1500 км" step="0.1" required>
+          <input type="number" name="t3000" placeholder="<3000 км" step="0.1" required>
+          <input type="number" name="t5000" placeholder=">5000 км" step="0.1" required>
+        </div>
+        <input type="text" name="Ref" placeholder="Классы рефрижераторов (A,B,C)" required>
+        <input type="number" name="rat" placeholder="Рейтинг" step="0.1" min="1.1" max="5.0" required>
+        <button type="submit">Добавить</button>
+      </form>
+
+      <button id="downloadCsvBtn">Скачать базу в CSV</button>
+      <input type="file" id="carrierCsvInput" accept=".csv" style="margin-left: 10px;">
+
+      <div class="carrier-table-wrapper">
+        <table id="carrierTable">
+          <thead>
+            <tr>
+              <th>Перевозчик</th>
+              <th>Тарифы</th>
+              <th>Классы рефрижераторов</th>
+              <th>Рейтинг</th>
+              <th>Удалить</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+
+<!-- Новая карта в iframe -->
+<iframe src="MapAuto.html" style="width: 100%; min-height: 400px; height: 80vh; border: none; border-radius: 10px;"></iframe>
+
+</div>
+
+<!-- Блок морского транспорта -->
+<div class="transport-block" style="display: flex; flex-direction: column;">
+  <h3>Морской транспорт</h3>
+
+  <!-- База перевозчиков морского транспорта -->
+  <div id="seaCarrierBlock" style="border: 1px solid #ccc; border-radius: 8px; background: #f8f8f8; margin-bottom: 20px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px;">
+      <strong style="margin: 0;">База перевозчиков (морской транспорт)</strong>
+      <button id="toggleSeaCarrierBlock" style="font-size: 18px; background: none; border: none; cursor: pointer;">➕</button>
+    </div>
+    <div id="seaCarrierControls" style="display: none; padding: 10px; padding-top: 0;">
+      <form id="addSeaCarrierForm" style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 10px;">
+        <select name="route" required>
+          <option value="Владивосток-Санкт-Петербург">Владивосток-Санкт-Петербург</option>
+          <option value="Владивосток-Новороссийск">Владивосток-Новороссийск</option>
+        </select>
+        <input type="text" name="line" placeholder="Наименование линии" required>
+        <input type="number" name="freightCost" placeholder="Стоимость фрахта (руб.)" step="0.01" required>
+        <input type="number" name="transitTime" placeholder="Время в пути (дней)" step="0.1" required>
+        <input type="number" name="reefSurcharge" placeholder="Надбавка за реф-контейнер (руб.)" step="0.01" required>
+        <input type="number" name="rating" placeholder="Рейтинг" step="0.1" min="1.1" max="5.0" required>
+        <button type="submit">Добавить перевозчика</button>
+      </form>
+      <button id="downloadSeaCsvBtn">Скачать базу в CSV</button>
+      <input type="file" id="seaCarrierCsvInput" accept=".csv" style="margin-left: 10px;">
+
+      <div class="carrier-table-wrapper">
+        <table id="seaCarrierTable">
+          <thead>
+            <tr>
+              <th>Маршрут</th>
+              <th>Линия</th>
+              <th>Стоимость фрахта (руб.)</th>
+              <th>Время в пути (дней)</th>
+              <th>Надбавка за реф-контейнер (руб.)</th>
+              <th>Рейтинг</th>
+              <th>Удалить</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Карта морского транспорта -->
+  <iframe src="MapSea.html" style="width: 100%; min-height: 400px; height: 70vh; border: none; border-radius: 10px;"></iframe>
+</div>
+
+  <!-- Железнодорожный транспорт -->
+    <div class="transport-block">
+      <h3>Железнодорожный транспорт</h3>
+            <!-- База маршрутов ЖД -->
+      <div id="railCarrierBlock" style="border: 1px solid #ccc; border-radius: 8px; background: #f8f8f8; margin-bottom: 20px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px;">
+          <strong style="margin: 0;">База маршрутов (ЖД транспорт)</strong>
+          <button id="toggleRailCarrierBlock" style="font-size: 18px; background: none; border: none; cursor: pointer;">➕</button>
+        </div>
+        <div id="railCarrierControls" style="display: none; padding: 10px; padding-top: 0;">
+          <form id="addRailCarrierForm" style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 10px;">
+            <input type="text" name="route" placeholder="Маршрут (город A - город B)" required>
+            <input type="number" name="kcj" placeholder="Тариф (Kcj)" step="0.01" required>
+            <input type="number" name="tj" placeholder="Время в пути (Tj) дней" step="0.1" required>
+            <input type="number" name="sj" placeholder="Расстояние (Sj) км" step="0.1" required>
+            <button type="submit">Добавить маршрут</button>
+          </form>
+          <button id="downloadRailCsvBtn">Скачать базу маршрутов</button>
+          <input type="file" id="railCarrierCsvInput" accept=".csv" style="margin-left: 10px;">
+
+          <div class="carrier-table-wrapper">
+            <table id="railCarrierTable">
+              <thead>
+                <tr>
+                  <th>Маршрут</th>
+                  <th>Тариф (Kcj)</th>
+                  <th>Время в пути (Tj)</th>
+                  <th>Расстояние (Sj)</th>
+                  <th>Удалить</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- База вагонов -->
+      <div id="wagonBlock" style="border: 1px solid #ccc; border-radius: 8px; background: #f8f8f8; margin-bottom: 20px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px;">
+          <strong style="margin: 0;">База вагонов (ЖД транспорт)</strong>
+          <button id="toggleWagonBlock" style="font-size: 18px; background: none; border: none; cursor: pointer;">➕</button>
+        </div>
+        <div id="wagonControls" style="display: none; padding: 10px; padding-top: 0;">
+          <form id="addWagonForm" style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 10px;">
+          <input type="text" name="type" placeholder="Тип вагона" required>
+          <div style="display: flex; gap: 10px;">
+            <input type="number" name="t_min" placeholder="Температура от (°C)" step="0.1" required>
+            <input type="number" name="t_max" placeholder="Температура до (°C)" step="0.1" required>
+          </div>
+          <input type="number" name="fv" placeholder="Стоимость вагона (руб.)" step="0.01" required>
+          <button type="submit">Добавить вагон</button>
+        </form>
+
+          <button id="downloadWagonCsvBtn">Скачать базу вагонов</button>
+          <input type="file" id="wagonCsvInput" accept=".csv" style="margin-left: 10px;">
+
+          <div class="carrier-table-wrapper">
+            <table id="wagonTable">
+              <thead>
+                <tr>
+                  <th>Тип вагона</th>
+                  <th>Температурный режим (t)</th>
+                  <th>Стоимость вагона (Fv)</th>
+                  <th>Удалить</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+</div>
+      <h2>Просмтор маршрута</h2>
+      <div style="width: 100%; height: 300px; margin-bottom: 30px;">
+        <div style="margin-bottom: 10px;">
+          <button id="toggleRailRouteBtn">Показать маршрут</button>
+        </div>
+        <iframe id="railMapFrame" src="poezd_marsh.html" style="width: 100%; height: 100%; border: none; border-radius: 10px;"></iframe>
+        <div id="railLegend" style="margin-top: 10px; font-size: 14px; color: #333;">
+          <p><span style="display:inline-block;width:20px;height:10px;background:#0000FF;border:1px solid #333;"></span> Транссибирская магистраль</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Авиационный транспорт -->
+    <div class="transport-block" style="display: flex; flex-direction: column;">
+    <h3>Авиационный транспорт</h3>
+        <!-- База перевозчиков авиационного транспорта -->
+        <div id="airCarrierBlock" style="border: 1px solid #ccc; border-radius: 8px; background: #f8f8f8; margin-bottom: 20px; margin-top: 20px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px;">
+            <strong style="margin: 0;">База перевозчиков (авиационный транспорт)</strong>
+            <button id="toggleAirCarrierBlock" style="font-size: 18px; background: none; border: none; cursor: pointer;">➕</button>
+          </div>
+          <div id="airCarrierControls" style="display: none; padding: 10px; padding-top: 0;">
+            <form id="addAirCarrierForm" style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 10px;">
+              <select name="route" required>
+                <option value="Владивосток-Москва">Владивосток-Москва</option>
+                <option value="Владивосток-Санкт-Петербург">Владивосток-Санкт-Петербург</option>
+              </select>
+              <input type="text" name="company" placeholder="Наименование авиакомпании" required>
+              <input type="number" name="kca" placeholder="Базовый тариф (₽/кг)" step="0.01" required>
+              <input type="number" name="kns" placeholder="Надбавка за скоропорт (%)" step="0.01" required>
+              <input type="number" name="avcont" placeholder="Аренда контейнера (₽)" step="0.01" required>
+              <input type="number" name="ksbor" placeholder="Сборы (₽)" step="0.01" required>
+              <button type="submit">Добавить перевозчика</button>
+            </form>
+            <button id="downloadAirCsvBtn">Скачать базу в CSV</button>
+            <input type="file" id="airCarrierCsvInput" accept=".csv" style="margin-left: 10px;">
+
+            <div class="carrier-table-wrapper">
+              <table id="airCarrierTable">
+                <thead>
+                  <tr>
+                    <th>Маршрут</th>
+                    <th>Авиакомпания</th>
+                    <th>Базовый тариф (₽/кг)</th>
+                    <th>Надбавка за скоропорт (%)</th>
+                    <th>Аренда контейнера (₽)</th>
+                    <th>Сборы (₽)</th>
+                    <th>Удалить</th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+          <iframe src="MapAir.html" style="width: 100%; min-height: 400px; height: 70vh; border: none; border-radius: 10px;"></iframe>
+          </div>
+</div>
+
+
+<section id="results">
+    <h2>Результаты</h2>
+    <p>Содержание раздела "Результаты"</p>
+</section>
+
+<section id="conclusion">
+    <h2>Заключение</h2>
+    <p>Содержание раздела "Заключение"</p>
+</section>
+
+<script src="script.js"></script>
+<script>
+  const railBtn = document.getElementById('toggleRailRouteBtn');
+  const railFrame = document.getElementById('railMapFrame');
+  let railRouteVisible = false;
+
+  railBtn.addEventListener('click', () => {
+    railFrame.contentWindow.postMessage('toggleRoute', '*');
+    railRouteVisible = !railRouteVisible;
+    railBtn.textContent = railRouteVisible ? 'Скрыть маршрут' : 'Показать маршрут';
+  });
+</script>
+<script>
+  window.addEventListener("message", (event) => {
+    if (event.data.type === "autoRoute") {
+      console.log("Авто-маршрут:", event.data.distance, event.data.duration);
+      // Здесь можешь записать данные в переменные, интерфейс и т.д.
+    }
+  });
+</script>
+</body>
+</html>
