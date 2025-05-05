@@ -100,12 +100,35 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         localStorage.setItem("productData", JSON.stringify(newData));
-        displayProductData();
-    };
-    reader.readAsText(file);
-});
-
-
+        // Всегда загружаем продуктовую базу из product_data.csv
+        fetch("product_data.csv")
+            .then(res => {
+                if (!res.ok) throw new Error("Ошибка загрузки product_data.csv");
+                return res.text();
+            })
+            .then(csv => {
+                const newData = [];
+                const lines = csv.split('\n').filter(l => l.trim());
+                lines.slice(1).forEach(line => {
+                    const [productName, freezingDegree, transportTemp, weight, transportDuration, coefficient] = line.split(';');
+                    newData.push({
+                        productName: productName.trim(),
+                        freezingDegree: freezingDegree.trim(),
+                        transportTemp: transportTemp.trim(),
+                        weight: parseFloat(weight),
+                        transportDuration: parseFloat(transportDuration),
+                        coefficient: parseFloat(coefficient)
+                    });
+                });
+                localStorage.setItem("productData", JSON.stringify(newData)); // Можно убрать, если не нужно сохранять
+                displayProductData();
+            })
+            .catch(err => {
+                console.error("Не удалось загрузить product_data.csv:", err);
+            });
+            };
+            reader.readAsText(file);
+        });
 
 
     productForm.addEventListener('submit', e => {
