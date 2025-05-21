@@ -82,6 +82,7 @@
                     <th>Вес груза (кг)</th>
                     <th>Сроки транспортировки</th>
                     <th>Коэффициент</th>
+                    <th>Удалить</th>
                 </tr>
             </thead>
             <tbody></tbody>
@@ -297,11 +298,12 @@
                 <option value="Владивосток-Москва">Владивосток-Москва</option>
                 <option value="Владивосток-Санкт-Петербург">Владивосток-Санкт-Петербург</option>
               </select>
-              <input type="text" name="company" placeholder="Наименование авиакомпании" required>
-              <input type="number" name="kca" placeholder="Базовый тариф (₽/кг)" step="0.01" required>
-              <input type="number" name="kns" placeholder="Надбавка за скоропорт (%)" step="0.01" required>
-              <input type="number" name="avcont" placeholder="Аренда контейнера (₽)" step="0.01" required>
-              <input type="number" name="ksbor" placeholder="Сборы (₽)" step="0.01" required>
+                <input type="text" name="company" placeholder="Наименование авиакомпании" required>
+                <input type="number" name="kca" placeholder="Базовый тариф (₽/кг)" step="0.01" required>
+                <input type="number" name="kns" placeholder="Надбавка за скоропорт (%)" step="0.01" required>
+                <input type="number" name="avcont" placeholder="Аренда контейнера (₽)" step="0.01" required>
+                <input type="number" name="ksbor" placeholder="Сборы (₽)" step="0.01" required>
+                <input type="number" name="flightTime" placeholder="Время полета (ч)" step="0.1" required>
               <button type="submit">Добавить перевозчика</button>
             </form>
             <button id="downloadAirCsvBtn">Скачать базу в CSV</button>
@@ -317,6 +319,7 @@
                     <th>Надбавка за скоропорт (%)</th>
                     <th>Аренда контейнера (₽)</th>
                     <th>Сборы (₽)</th>
+                    <th>Время полета (ч)</th>
                     <th>Удалить</th>
                   </tr>
                 </thead>
@@ -330,6 +333,11 @@
           </div>
 </div>
 
+<section id="calculation">
+  <h2>Расчетная часть</h2>
+  <a href="calculation.html"><button>Перейти к расчетной части</button></a>
+
+</section>
 
 <section id="results">
     <h2>Результаты</h2>
@@ -361,5 +369,6 @@
     }
   });
 </script>
+
 </body>
 </html>

@@ -1,5 +1,6 @@
 let carriers = [];
 document.addEventListener('DOMContentLoaded', () => {
+
     const productForm = document.getElementById('productForm');
     const productNameInput = document.getElementById('productName');
     const freezingDegreeInput = document.getElementById('freezingDegree');
@@ -55,29 +56,44 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
 
-    function displayProductData() {
+            function displayProductData() {
+            productTable.innerHTML = "";
+            const data = localStorage.getItem('productData');
 
-        productTable.innerHTML = "";
-        const data = localStorage.getItem('productData');
-
-        if (data) {
+            if (data) {
             JSON.parse(data).forEach((productData, index) => {
-                let row = productTable.insertRow();
-                row.insertCell().innerHTML = index + 1;
-                row.insertCell().innerHTML = productData.productName;
-                row.insertCell().innerHTML = productData.freezingDegree;
-                row.insertCell().innerHTML = productData.transportTemp;
-                row.insertCell().innerHTML = productData.weight;
-                row.insertCell().innerHTML = productData.transportDuration;
-                row.insertCell().innerHTML = productData.coefficient;
-            });
-        } else {
             let row = productTable.insertRow();
-            let cell = row.insertCell();
-            cell.colSpan = 6;
-            cell.textContent = 'Данные о продукте не найдены.';
-        }
+            row.insertCell().innerHTML = index + 1;
+            row.insertCell().innerHTML = productData.productName;
+            row.insertCell().innerHTML = productData.freezingDegree;
+            row.insertCell().innerHTML = productData.transportTemp;
+            row.insertCell().innerHTML = productData.weight;
+            row.insertCell().innerHTML = productData.transportDuration;
+            row.insertCell().innerHTML = productData.coefficient;
+
+            // Добавляем кнопку для удаления строки
+            const deleteCell = row.insertCell();
+            const deleteBtn = document.createElement("button");
+            deleteBtn.textContent = "🗑️";  // Иконка корзины
+            deleteBtn.className = "delete-button";
+            deleteBtn.addEventListener("click", () => {
+                // Удаляем продукт из массива
+                let productDataArray = JSON.parse(localStorage.getItem('productData'));
+                productDataArray.splice(index, 1);  // Удаляем элемент из массива
+                localStorage.setItem('productData', JSON.stringify(productDataArray));  // Обновляем данные в localStorage
+                displayProductData();  // Перерисовываем таблицу
+            });
+
+            deleteCell.appendChild(deleteBtn);
+        });
+    } else {
+        let row = productTable.insertRow();
+        let cell = row.insertCell();
+        cell.colSpan = 6;
+        cell.textContent = 'Данные о продукте не найдены.';
     }
+}
+
     document.getElementById("productCsvInput").addEventListener("change", function () {
     const file = this.files[0];
     if (!file) return;
@@ -122,6 +138,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
                 localStorage.setItem("productData", JSON.stringify(newData)); // Можно убрать, если не нужно сохранять
                 displayProductData();
+
             })
             .catch(err => {
                 console.error("Не удалось загрузить product_data.csv:", err);
@@ -143,9 +160,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     displayProductData();
 
-    
-
-    
 
     // База перевозчиков
     const carrierControls = document.getElementById("carrierControls");
@@ -677,8 +691,9 @@ let airCarriers = [];
 
 function renderAirCarrierTable() {
   const tbody = document.querySelector("#airCarrierTable tbody");
-  tbody.innerHTML = "";
+  tbody.innerHTML = "";  // Очищаем таблицу перед отображением новых данных
 
+  const airCarriers = JSON.parse(localStorage.getItem("airCarriers") || "[]");
   airCarriers.forEach((c, index) => {
     const row = tbody.insertRow();
     row.insertCell().textContent = c.route;
@@ -687,15 +702,16 @@ function renderAirCarrierTable() {
     row.insertCell().textContent = c.kns;
     row.insertCell().textContent = c.avcont;
     row.insertCell().textContent = c.ksbor;
+    row.insertCell().textContent = c.flightTime + " ч";  // Отображаем время полета
 
     const deleteCell = row.insertCell();
     const deleteBtn = document.createElement("button");
     deleteBtn.textContent = "🗑️";
     deleteBtn.className = "delete-button";
     deleteBtn.addEventListener("click", () => {
-      airCarriers.splice(index, 1);
-      localStorage.setItem("airCarriers", JSON.stringify(airCarriers));
-      renderAirCarrierTable();
+      airCarriers.splice(index, 1);  // Удаляем элемент из массива
+      localStorage.setItem("airCarriers", JSON.stringify(airCarriers));  // Сохраняем изменения в localStorage
+      renderAirCarrierTable();  // Перерисовываем таблицу
     });
     deleteCell.appendChild(deleteBtn);
   });
@@ -711,7 +727,9 @@ document.getElementById("addAirCarrierForm").addEventListener("submit", e => {
     kns: parseFloat(form.kns.value),
     avcont: parseFloat(form.avcont.value),
     ksbor: parseFloat(form.ksbor.value),
+    flightTime: parseFloat(form.flightTime.value),
   };
+  let airCarriers = JSON.parse(localStorage.getItem("airCarriers") || "[]");
   airCarriers.push(newAirCarrier);
   localStorage.setItem("airCarriers", JSON.stringify(airCarriers));
   form.reset();
@@ -723,17 +741,18 @@ document.getElementById("airCarrierCsvInput").addEventListener("change", functio
   if (!file) return;
   const reader = new FileReader();
   reader.onload = function (e) {
-    airCarriers = [];
-    const lines = e.target.result.split('\n').filter(l => l.trim());
-    lines.slice(1).forEach(line => {
-      const [route, company, kca, kns, avcont, ksbor] = line.split(';');
+    const lines = e.target.result.split('\n').filter(l => l.trim() !== "");  // Убираем пустые строки
+    let airCarriers = [];
+    lines.slice(1).forEach(line => {  // Пропускаем заголовок
+      const [route, company, kca, kns, avcont, ksbor, flightTime] = line.split(';');
       airCarriers.push({
         route: route.trim(),
         company: company.trim(),
         kca: parseFloat(kca),
         kns: parseFloat(kns),
         avcont: parseFloat(avcont),
-        ksbor: parseFloat(ksbor)
+        ksbor: parseFloat(ksbor),
+        flightTime: parseFloat(flightTime)
       });
     });
     localStorage.setItem("airCarriers", JSON.stringify(airCarriers));
@@ -744,10 +763,10 @@ document.getElementById("airCarrierCsvInput").addEventListener("change", functio
 
 function downloadAirCarrierTable() {
   let csvContent = "data:text/csv;charset=utf-8,";
-  csvContent += "Маршрут;Авиакомпания;Базовый тариф (Kca);Надбавка за скоропорт (Kns);Аренда контейнера (avcont);Сборы (Ksbor)\n";
+  csvContent += "Маршрут;Авиакомпания;Базовый тариф (Kca);Надбавка за скоропорт (Kns);Аренда контейнера (avcont);Сборы (Ksbor)\n;Время полета (ч)\n";
 
   airCarriers.forEach(c => {
-    csvContent += `${c.route};${c.company};${c.kca};${c.kns};${c.avcont};${c.ksbor}\n`;
+    csvContent += `${c.route};${c.company};${c.kca};${c.kns};${c.avcont};${c.ksbor};${c.flightTime}\n`;
   });
 
   const encodedUri = encodeURI(csvContent);
@@ -776,14 +795,15 @@ if (savedAirCarriers) {
       airCarriers = [];
       const lines = csv.split('\n').filter(l => l.trim());
       lines.slice(1).forEach(line => {
-        const [route, company, kca, kns, avcont, ksbor] = line.split(';');
+        const [route, company, kca, kns, avcont, ksbor,flightTime] = line.split(';');
         airCarriers.push({
           route: route.trim(),
           company: company.trim(),
           kca: parseFloat(kca),
           kns: parseFloat(kns),
           avcont: parseFloat(avcont),
-          ksbor: parseFloat(ksbor)
+          ksbor: parseFloat(ksbor),
+          flightTime: parseFloat(flightTime)
         });
       });
       localStorage.setItem("airCarriers", JSON.stringify(airCarriers));

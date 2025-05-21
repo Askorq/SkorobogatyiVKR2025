@@ -279,3 +279,15 @@ iframe {
     width: 100%;
     border-collapse: collapse;
 }
+/* Стили для кнопки удаления */
+.delete-button {
+    border: none;
+    background: none;
+    font-size: 18px;
+    cursor: pointer;
+    color: red;
+    padding: 5px;
+}
+.delete-button:hover {
+    color: darkred;
+}
