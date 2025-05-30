@@ -57,75 +57,75 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
             function displayProductData() {
-    productTable.innerHTML = "";
+                productTable.innerHTML = "";
 
-    const savedData = localStorage.getItem('productData');
-    if (!savedData) {
-        // Если данных нет в localStorage — загружаем из CSV
-        fetch("product_data.csv")
-            .then(res => {
-                if (!res.ok) throw new Error("Ошибка загрузки product_data.csv");
-                return res.text();
-            })
-            .then(csv => {
-                const newData = [];
-                const lines = csv.split('\n').filter(l => l.trim());
-                lines.slice(1).forEach(line => {
-                    const [productName, freezingDegree, transportTemp, weight, transportDuration, coefficient] = line.split(';');
-                    newData.push({
-                        productName: productName.trim(),
-                        freezingDegree: freezingDegree.trim(),
-                        transportTemp: transportTemp.trim(),
-                        weight: parseFloat(weight),
-                        transportDuration: parseFloat(transportDuration),
-                        coefficient: parseFloat(coefficient)
+                const savedData = localStorage.getItem('productData');
+                if (!savedData) {
+                    // Если данных нет в localStorage — загружаем из CSV
+                    fetch("product_data.csv")
+                        .then(res => {
+                            if (!res.ok) throw new Error("Ошибка загрузки product_data.csv");
+                            return res.text();
+                        })
+                        .then(csv => {
+                            const newData = [];
+                            const lines = csv.split('\n').filter(l => l.trim());
+                            lines.slice(1).forEach(line => {
+                                const [productName, freezingDegree, transportTemp, weight, transportDuration, coefficient] = line.split(';');
+                                newData.push({
+                                    productName: productName.trim(),
+                                    freezingDegree: freezingDegree.trim(),
+                                    transportTemp: transportTemp.trim(),
+                                    weight: parseFloat(weight),
+                                    transportDuration: parseFloat(transportDuration),
+                                    coefficient: parseFloat(coefficient)
+                                });
+                            });
+                            localStorage.setItem("productData", JSON.stringify(newData));
+                            displayProductData(); // Повторный вызов, теперь с данными
+                        })
+                        .catch(err => {
+                            console.error("Не удалось загрузить product_data.csv:", err);
+                            let row = productTable.insertRow();
+                            let cell = row.insertCell();
+                            cell.colSpan = 6;
+                            cell.textContent = 'Не удалось загрузить данные.';
+                        });
+                    return;
+                }
+
+                const productDataArray = JSON.parse(savedData);
+                if (productDataArray.length === 0) {
+                    let row = productTable.insertRow();
+                    let cell = row.insertCell();
+                    cell.colSpan = 6;
+                    cell.textContent = 'Данные о продукте не найдены.';
+                    return;
+                }
+
+                productDataArray.forEach((productData, index) => {
+                    let row = productTable.insertRow();
+                    row.insertCell().innerHTML = index + 1;
+                    row.insertCell().innerHTML = productData.productName;
+                    row.insertCell().innerHTML = productData.freezingDegree;
+                    row.insertCell().innerHTML = productData.transportTemp;
+                    row.insertCell().innerHTML = productData.weight;
+                    row.insertCell().innerHTML = productData.transportDuration;
+                    row.insertCell().innerHTML = productData.coefficient;
+
+                    const deleteCell = row.insertCell();
+                    const deleteBtn = document.createElement("button");
+                    deleteBtn.textContent = "🗑️";
+                    deleteBtn.className = "delete-button";
+                    deleteBtn.addEventListener("click", () => {
+                        let productDataArray = JSON.parse(localStorage.getItem('productData'));
+                        productDataArray.splice(index, 1);
+                        localStorage.setItem('productData', JSON.stringify(productDataArray));
+                        displayProductData();
                     });
+                    deleteCell.appendChild(deleteBtn);
                 });
-                localStorage.setItem("productData", JSON.stringify(newData));
-                displayProductData(); // Повторный вызов, теперь с данными
-            })
-            .catch(err => {
-                console.error("Не удалось загрузить product_data.csv:", err);
-                let row = productTable.insertRow();
-                let cell = row.insertCell();
-                cell.colSpan = 6;
-                cell.textContent = 'Не удалось загрузить данные.';
-            });
-        return;
-    }
-
-    const productDataArray = JSON.parse(savedData);
-    if (productDataArray.length === 0) {
-        let row = productTable.insertRow();
-        let cell = row.insertCell();
-        cell.colSpan = 6;
-        cell.textContent = 'Данные о продукте не найдены.';
-        return;
-    }
-
-    productDataArray.forEach((productData, index) => {
-        let row = productTable.insertRow();
-        row.insertCell().innerHTML = index + 1;
-        row.insertCell().innerHTML = productData.productName;
-        row.insertCell().innerHTML = productData.freezingDegree;
-        row.insertCell().innerHTML = productData.transportTemp;
-        row.insertCell().innerHTML = productData.weight;
-        row.insertCell().innerHTML = productData.transportDuration;
-        row.insertCell().innerHTML = productData.coefficient;
-
-        const deleteCell = row.insertCell();
-        const deleteBtn = document.createElement("button");
-        deleteBtn.textContent = "🗑️";
-        deleteBtn.className = "delete-button";
-        deleteBtn.addEventListener("click", () => {
-            let productDataArray = JSON.parse(localStorage.getItem('productData'));
-            productDataArray.splice(index, 1);
-            localStorage.setItem('productData', JSON.stringify(productDataArray));
-            displayProductData();
-        });
-        deleteCell.appendChild(deleteBtn);
-    });
-}
+            }
 
     
 
@@ -798,7 +798,7 @@ document.getElementById("airCarrierCsvInput").addEventListener("change", functio
 
 function downloadAirCarrierTable() {
   let csvContent = "data:text/csv;charset=utf-8,";
-  csvContent += "Маршрут;Авиакомпания;Базовый тариф (Kca);Надбавка за скоропорт (Kns);Аренда контейнера (avcont);Сборы (Ksbor)\n;Время полета (ч)\n";
+  csvContent += "Маршрут;Авиакомпания;Базовый тариф (Kca);Надбавка за скоропорт (Kns);Аренда контейнера (avcont);Сборы (Ksbor);Время полета (ч)\n";
 
   airCarriers.forEach(c => {
     csvContent += `${c.route};${c.company};${c.kca};${c.kns};${c.avcont};${c.ksbor};${c.flightTime}\n`;
@@ -816,38 +816,33 @@ function downloadAirCarrierTable() {
 document.getElementById("downloadAirCsvBtn").addEventListener("click", downloadAirCarrierTable);
 
 // Загрузка при старте страницы
-const savedAirCarriers = localStorage.getItem("airCarriers");
-if (savedAirCarriers) {
-  airCarriers = JSON.parse(savedAirCarriers);
-  renderAirCarrierTable();
-} else {
-  fetch("air_carriers.csv")
-    .then(res => {
-      if (!res.ok) throw new Error("Ошибка загрузки air_carriers.csv");
-      return res.text();
-    })
-    .then(csv => {
-      airCarriers = [];
-      const lines = csv.split('\n').filter(l => l.trim());
-      lines.slice(1).forEach(line => {
-        const [route, company, kca, kns, avcont, ksbor,flightTime] = line.split(';');
-        airCarriers.push({
-          route: route.trim(),
-          company: company.trim(),
-          kca: parseFloat(kca),
-          kns: parseFloat(kns),
-          avcont: parseFloat(avcont),
-          ksbor: parseFloat(ksbor),
-          flightTime: parseFloat(flightTime)
-        });
+fetch("air_carriers.csv")
+  .then(res => {
+    if (!res.ok) throw new Error("Ошибка загрузки air_carriers.csv");
+    return res.text();
+  })
+  .then(csv => {
+    airCarriers = [];
+    const lines = csv.split('\n').filter(l => l.trim());
+    lines.slice(1).forEach(line => {
+      const [route, company, kca, kns, avcont, ksbor, flightTime] = line.split(';');
+      airCarriers.push({
+        route: route.trim(),
+        company: company.trim(),
+        kca: parseFloat(kca),
+        kns: parseFloat(kns),
+        avcont: parseFloat(avcont),
+        ksbor: parseFloat(ksbor),
+        flightTime: parseFloat(flightTime)
       });
-      localStorage.setItem("airCarriers", JSON.stringify(airCarriers));
-      renderAirCarrierTable();
-    })
-    .catch(err => {
-      console.error("Не удалось загрузить air_carriers.csv:", err);
     });
-}
+    localStorage.setItem("airCarriers", JSON.stringify(airCarriers));
+    renderAirCarrierTable();
+  })
+  .catch(err => {
+    console.error("Не удалось загрузить air_carriers.csv:", err);
+  });
+
 
 // Кнопка сворачивания базы авиаперевозчиков
 document.getElementById("toggleAirCarrierBlock").addEventListener("click", () => {
