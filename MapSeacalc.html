@@ -242,6 +242,9 @@
           const activeRoute = multiRoute.getActiveRoute();
           if (activeRoute) {
             const distance = (activeRoute.properties.get("distance").value / 1000).toFixed(2);
+            let seaAutoDistances = JSON.parse(localStorage.getItem("seaAutoDistances") || "[]");
+            seaAutoDistances[i - 1] = parseFloat(distance);
+            localStorage.setItem("seaAutoDistances", JSON.stringify(seaAutoDistances));
             const durationMin = Math.round(activeRoute.properties.get("duration").value / 60);
             // Преобразуем длительность маршрута в сутки
             const durationDays = durationMin / (60 * 24);
@@ -268,6 +271,7 @@
             }
 
 
+
             const days = Math.floor(durationMin / (24 * 60));
             const hours = Math.floor((durationMin % (24 * 60)) / 60);
             const minutes = durationMin % 60;
@@ -280,6 +284,7 @@
             const div = document.createElement('div');
             div.innerHTML = `<strong>Маршрут ${i}:</strong> ${distance} км, ${timeStr}`;
             document.getElementById("routes").appendChild(div);
+
           }
         });
       }
@@ -416,7 +421,7 @@
       }
     }
 
-
+    
   </script>
 </body>
 </html>

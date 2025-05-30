@@ -57,42 +57,77 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
             function displayProductData() {
-            productTable.innerHTML = "";
-            const data = localStorage.getItem('productData');
+    productTable.innerHTML = "";
 
-            if (data) {
-            JSON.parse(data).forEach((productData, index) => {
-            let row = productTable.insertRow();
-            row.insertCell().innerHTML = index + 1;
-            row.insertCell().innerHTML = productData.productName;
-            row.insertCell().innerHTML = productData.freezingDegree;
-            row.insertCell().innerHTML = productData.transportTemp;
-            row.insertCell().innerHTML = productData.weight;
-            row.insertCell().innerHTML = productData.transportDuration;
-            row.insertCell().innerHTML = productData.coefficient;
-
-            // Добавляем кнопку для удаления строки
-            const deleteCell = row.insertCell();
-            const deleteBtn = document.createElement("button");
-            deleteBtn.textContent = "🗑️";  // Иконка корзины
-            deleteBtn.className = "delete-button";
-            deleteBtn.addEventListener("click", () => {
-                // Удаляем продукт из массива
-                let productDataArray = JSON.parse(localStorage.getItem('productData'));
-                productDataArray.splice(index, 1);  // Удаляем элемент из массива
-                localStorage.setItem('productData', JSON.stringify(productDataArray));  // Обновляем данные в localStorage
-                displayProductData();  // Перерисовываем таблицу
+    const savedData = localStorage.getItem('productData');
+    if (!savedData) {
+        // Если данных нет в localStorage — загружаем из CSV
+        fetch("product_data.csv")
+            .then(res => {
+                if (!res.ok) throw new Error("Ошибка загрузки product_data.csv");
+                return res.text();
+            })
+            .then(csv => {
+                const newData = [];
+                const lines = csv.split('\n').filter(l => l.trim());
+                lines.slice(1).forEach(line => {
+                    const [productName, freezingDegree, transportTemp, weight, transportDuration, coefficient] = line.split(';');
+                    newData.push({
+                        productName: productName.trim(),
+                        freezingDegree: freezingDegree.trim(),
+                        transportTemp: transportTemp.trim(),
+                        weight: parseFloat(weight),
+                        transportDuration: parseFloat(transportDuration),
+                        coefficient: parseFloat(coefficient)
+                    });
+                });
+                localStorage.setItem("productData", JSON.stringify(newData));
+                displayProductData(); // Повторный вызов, теперь с данными
+            })
+            .catch(err => {
+                console.error("Не удалось загрузить product_data.csv:", err);
+                let row = productTable.insertRow();
+                let cell = row.insertCell();
+                cell.colSpan = 6;
+                cell.textContent = 'Не удалось загрузить данные.';
             });
+        return;
+    }
 
-            deleteCell.appendChild(deleteBtn);
-        });
-    } else {
+    const productDataArray = JSON.parse(savedData);
+    if (productDataArray.length === 0) {
         let row = productTable.insertRow();
         let cell = row.insertCell();
         cell.colSpan = 6;
         cell.textContent = 'Данные о продукте не найдены.';
+        return;
     }
+
+    productDataArray.forEach((productData, index) => {
+        let row = productTable.insertRow();
+        row.insertCell().innerHTML = index + 1;
+        row.insertCell().innerHTML = productData.productName;
+        row.insertCell().innerHTML = productData.freezingDegree;
+        row.insertCell().innerHTML = productData.transportTemp;
+        row.insertCell().innerHTML = productData.weight;
+        row.insertCell().innerHTML = productData.transportDuration;
+        row.insertCell().innerHTML = productData.coefficient;
+
+        const deleteCell = row.insertCell();
+        const deleteBtn = document.createElement("button");
+        deleteBtn.textContent = "🗑️";
+        deleteBtn.className = "delete-button";
+        deleteBtn.addEventListener("click", () => {
+            let productDataArray = JSON.parse(localStorage.getItem('productData'));
+            productDataArray.splice(index, 1);
+            localStorage.setItem('productData', JSON.stringify(productDataArray));
+            displayProductData();
+        });
+        deleteCell.appendChild(deleteBtn);
+    });
 }
+
+    
 
     document.getElementById("productCsvInput").addEventListener("change", function () {
     const file = this.files[0];

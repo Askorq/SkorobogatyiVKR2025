@@ -10,6 +10,25 @@
     input, button { padding: 8px; min-width: 250px; }
     .remove-btn { background-color: #e74c3c; color: white; border: none; cursor: pointer; padding: 8px; }
     #routes { margin-top: 10px; }
+    #carCarrierSelectTable {
+    border-collapse: collapse;
+    width: 100%;
+  }
+
+  #carCarrierSelectTable th,
+  #carCarrierSelectTable td {
+    border: 1px solid #ccc;
+    padding: 6px;
+    font-size: 13px;
+    white-space: nowrap;
+    text-align: left;
+  }
+
+  #carCarrierSelectTable td:last-child,
+  #carCarrierSelectTable th:last-child {
+    text-align: center;
+  }
+
   </style>
 </head>
 <body>
@@ -28,6 +47,25 @@
     <button onclick="addRouteFields()">Добавить маршрут</button>
     <button onclick="buildAllRoutes()">Построить маршруты</button>
   </div>
+
+  <h3>Выбор автомобильного перевозчика</h3>
+    <div id="carCarrierTableWrapper" style="border: 1px solid #ccc; padding: 10px; border-radius: 8px; overflow-y: auto; max-height: 130px;">
+      <table id="carCarrierSelectTable" style="width: 100%; border-collapse: collapse;">
+        <thead>
+          <tr>
+            <th>Название</th>
+            <th>Тарифы</th>
+            <th>Реф-классы</th>
+            <th>Рейтинг</th>
+            <th>Выбрать</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+      <p id="selectedCarCarrierInfo" style="margin-top: 10px; font-weight: bold;"></p>
+
 
   <div id="map"></div>
   <div id="routes"></div>
@@ -206,6 +244,7 @@
           const activeRoute = multiRoute.getActiveRoute();
           if (activeRoute) {
             const distance = (activeRoute.properties.get("distance").value / 1000).toFixed(2);
+            localStorage.setItem("routeDistanceKm", distance);
             const durationMin = Math.round(activeRoute.properties.get("duration").value / 60);
             // Преобразуем длительность маршрута в сутки
             const durationDays = durationMin / (60 * 24);
@@ -248,6 +287,47 @@
         });
       }
     }
+
+          function renderAutoCarrierTable() {
+        const tableBody = document.querySelector("#carCarrierSelectTable tbody");
+        tableBody.innerHTML = "";
+
+        const autoCarriers = JSON.parse(localStorage.getItem("carCarriers") || "[]");
+
+        autoCarriers.forEach((c, index) => {
+          const row = document.createElement("tr");
+
+          row.innerHTML = `
+            <td>${c.NP}</td>
+            <td>${Object.entries(c.Kc).map(([k, v]) => `${k}:${v}`).join(', ')}</td>
+            <td>${c.Ref.join(', ')}</td>
+            <td>${c.rat.toFixed(1)}</td>
+            <td style="text-align: center;">
+              <button onclick="selectCarCarrier(${index})" style="background: none; border: none; font-size: 14px; padding: 0; cursor: pointer;" title="Выбрать перевозчика">✅</button>
+            </td>
+          `;
+
+          tableBody.appendChild(row);
+        });
+      }
+
+      function selectCarCarrier(index) {
+        const autoCarriers = JSON.parse(localStorage.getItem("carCarriers") || "[]");
+        const selected = autoCarriers[index];
+
+        if (!selected) {
+          alert("Перевозчик не найден");
+          return;
+        }
+
+        localStorage.setItem("selectedCarCarrier", JSON.stringify(selected));
+
+        document.getElementById("selectedCarCarrierInfo").textContent =
+          `Выбран перевозчик: ${selected.NP} | Рейтинг: ${selected.rat} | Тарифы: ${Object.entries(selected.Kc).map(([k,v]) => `${k}:${v}`).join(', ')}`;
+      }
+
+      renderAutoCarrierTable();
+
   </script>
 </body>
 </html>

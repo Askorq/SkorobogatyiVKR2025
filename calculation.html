@@ -13,6 +13,27 @@
       width: 100%; height: 100%;
       background-color: rgba(0, 0, 0, 0.6);
     }
+      .info-button {
+    background: #007bff;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 22px;
+    height: 22px;
+    font-size: 14px;
+    cursor: pointer;
+    margin-left: 5px;
+  }
+
+  .formula-popup {
+    background: #f4f4f4;
+    border: 1px solid #ccc;
+    padding: 10px;
+    max-width: 400px;
+    margin-top: 10px;
+    font-size: 14px;
+  }
+
 
     .modal-content {
       background-color: #fff;
@@ -205,7 +226,9 @@
     checkboxes.forEach(cb => {
       if (cb.checked) selected.push(data[parseInt(cb.dataset.index, 10)]);
     });
+    localStorage.setItem("selectedProducts", JSON.stringify(selected));
 
+    console.log("Продукты для расчета:", selected);
     modal.style.display = 'none';
     selectedTable.style.display = 'table';
 
@@ -241,6 +264,7 @@
     modal.style.display = 'block';  // Показываем модальное окно для выбора продуктов
     fillTableBtn.style.display = 'none';  // Скрываем кнопку для заполнения заново
   });
+
 </script>
 
 
@@ -308,7 +332,350 @@
               <iframe src="MapPoezdcalc.html" style="width: 100%; min-height: 400px; height: 80vh; border: none; border-radius: 10px;"></iframe>
               <p id="railTransportResult">Результаты подбора железнодорожного транспорта</p>
           </div>
-          
+
+                
       </div>    
+      <!-- Этап 4: Расчет стоимости -->
+      <h2>Этап 4: Расчет стоимости </h2>
+      <button id="calculateBtn" style="margin-bottom: 20px;">Рассчитать стоимость</button>
+      <div id="tariffResults"></div>
+
+      <div class="tariff-block">
+      <h3>Автомобильный транспорт <button class="info-button" onclick="showInfo('auto')">i</button></h3>
+      <p id="autoResult">Ожидание расчета...</p>
+      <div class="formula-popup" id="auto-info" style="display: none;">
+        <p>Формула: ... (будет вставлена позже)</p>
+      </div>
+    </div>
+
+    <div class="tariff-block">
+      <h3>Железнодорожный транспорт <button class="info-button" onclick="showInfo('rail')">i</button></h3>
+      <p id="railResult">Ожидание расчета...</p>
+      <div class="formula-popup" id="rail-info" style="display: none;">
+        <p>Формула будет показана после расчёта</p>
+      </div>
+    </div>
+
+        <div class="tariff-block">
+      <h3>Морской транспорт <button class="info-button" onclick="showInfo('sea')">i</button></h3>
+      <p id="seaResult">Ожидание расчета...</p>
+      <div class="formula-popup" id="sea-info" style="display: none;">
+        <p>Формула будет показана после расчёта</p>
+      </div>
+    </div>
+
+    <div class="tariff-block">
+      <h3>Авиационный транспорт <button class="info-button" onclick="showInfo('air')">i</button></h3>
+      <p id="airResult">Ожидание расчета...</p>
+      <div class="formula-popup" id="air-info" style="display: none;">
+        <p>Формула будет показана после расчёта</p>
+      </div>
+    </div>
+
+
+  <script>
+        function calculateAllTariffs() {
+      calculateAutoTariff();
+      calculateRailTariff();
+      calculateSeaTariff();
+      calculateAirTariff();
+    }
+
+    function showInfo(type) {
+      const popup = document.getElementById(`${type}-info`);
+      if (popup.style.display === "none") {
+        popup.style.display = "block";
+      } else {
+        popup.style.display = "none";
+      }
+    }
+
+    function calculateAutoTariff() {
+        const resultEl = document.getElementById("autoResult");
+        const transportPassed = !document.getElementById("autoTransportResult")?.textContent.includes("⛔");
+
+        if (!transportPassed) {
+          resultEl.innerHTML = "Автомобильный транспорт не удовлетворяет условию.";
+          return;
+        }
+
+        const carrier = JSON.parse(localStorage.getItem("selectedCarCarrier") || "null");
+        const routeDistance = parseFloat(localStorage.getItem("routeDistanceKm") || "0"); // в километрах
+        const kSez = 1;
+
+        if (!carrier || routeDistance === 0) {
+          resultEl.innerHTML = "Недостаточно данных для расчета: не выбран перевозчик или неизвестно расстояние маршрута.";
+          return;
+        }
+
+        // Выбираем тариф kc в зависимости от расстояния
+        let kc = null;
+        const entries = Object.entries(carrier.Kc);
+        for (const [rangeStr, tariff] of entries) {
+          const isLess = rangeStr.startsWith("<");
+          const isMore = rangeStr.startsWith(">");
+          const num = parseFloat(rangeStr.replace(/[<>]/g, ""));
+
+          if (isLess && routeDistance < num) {
+            kc = parseFloat(tariff);
+            break;
+          } else if (isMore && routeDistance > num) {
+            kc = parseFloat(tariff);
+            break;
+          }
+        }
+
+        // Если ничего не подошло, берём ближайший по максимальному диапазону
+        if (kc === null && entries.length > 0) {
+          kc = parseFloat(entries[entries.length - 1][1]);
+        }
+
+        const cost = routeDistance * kc * kSez;
+
+        resultEl.innerHTML = `
+          Время в пути: рассчитывается при построении маршрута<br>
+          Расстояние: ${routeDistance.toFixed(1)} км<br>
+          Тариф (kc): ${kc} руб/км<br>
+          Коэффициент сезонности: ${kSez}<br>
+          <strong>Стоимость перевозки: ${cost.toLocaleString()} ₽</strong>
+        `;
+
+        // Обновляем текст формулы в popup
+        document.getElementById("auto-info").innerHTML = `
+          <p>
+            <strong>Формула:</strong> F = S × kc × kсез<br>
+            <strong>S</strong> — расстояние маршрута в км: ${routeDistance.toFixed(1)}<br>
+            <strong>kc</strong> — тариф перевозчика по расстоянию: ${kc} руб/км<br>
+            <strong>kсез</strong> — коэффициент сезонности: ${kSez}<br>
+            <strong>Итого:</strong> ${cost.toLocaleString()} ₽
+          </p>
+        `;
+      }
+
+
+    // Аналогично для других:
+        function calculateRailTariff() {
+  const resultEl = document.getElementById("railResult");
+  const transportPassed = !document.getElementById("railTransportResult")?.textContent.includes("⛔");
+
+  if (!transportPassed) {
+    resultEl.innerHTML = "Железнодорожный транспорт не удовлетворяет условию.";
+    return;
+  }
+
+  const selectedRail = JSON.parse(localStorage.getItem("selectedRailRoute") || "null");
+  const autoDistances = JSON.parse(localStorage.getItem("railAutoDistances") || "[]");
+  const minTemp = parseFloat(localStorage.getItem("selectedTransportTemp") || "0");
+  const wagonBase = JSON.parse(localStorage.getItem("wagons") || "[]");
+  const selectedCarrier = JSON.parse(localStorage.getItem("selectedCarCarrier") || "null");
+  const kSez = 1;
+
+  if (!selectedRail || autoDistances.length !== 2 || !selectedCarrier) {
+    resultEl.innerHTML = "Недостаточно данных для Ж/Д расчета.";
+    return;
+  }
+
+  const [auto1, auto2] = autoDistances.map(Number);
+
+  // Выбор тарифа kc для авто по каждому расстоянию
+  function getKcByDistance(distance) {
+    const entries = Object.entries(selectedCarrier.Kc);
+    for (const [range, tariff] of entries) {
+      const num = parseFloat(range.replace(/[<>]/g, ""));
+      if (range.includes("<") && distance < num) return parseFloat(tariff);
+      if (range.includes(">") && distance > num) return parseFloat(tariff);
+    }
+    return parseFloat(entries[entries.length - 1][1]);
+  }
+
+  const kc1 = getKcByDistance(auto1);
+  const kc2 = getKcByDistance(auto2);
+
+  const Fauto1 = auto1 * kc1 * kSez;
+  const Fauto2 = auto2 * kc2 * kSez;
+
+  const Ksj = parseFloat(selectedRail.kcj);
+  const Sj = parseFloat(selectedRail.sj);
+
+  // Выбор подходящего вагона
+  const wagon = wagonBase.find(w => {
+  return minTemp >= w.t_min && minTemp <= w.t_max;
+});
+
+
+  if (!wagon) {
+    resultEl.innerHTML = "Нет подходящего вагона по температуре.";
+    return;
+  }
+
+  const Fv = parseFloat(wagon.fv);
+  const Fj = Ksj * Sj + Fv;
+
+  const totalCost = Fauto1 + Fj + Fauto2;
+
+  resultEl.innerHTML = `
+    Автомаршрут 1: ${auto1.toFixed(2)} км × ${kc1} ₽ = ${Fauto1.toLocaleString()} ₽<br>
+    Автомаршрут 2: ${auto2.toFixed(2)} км × ${kc2} ₽ = ${Fauto2.toLocaleString()} ₽<br>
+    ЖД расстояние: ${Sj} км × ${Ksj} ₽ = ${(Ksj * Sj).toLocaleString()} ₽<br>
+    Стоимость вагона: ${Fv.toLocaleString()} ₽<br>
+    <strong>Итого: ${totalCost.toLocaleString()} ₽</strong>
+  `;
+
+      document.getElementById("rail-info").innerHTML = `
+        <p>
+          Формула: F = Fавто1 + (Ksj × Sj + Fв) + Fавто2<br>
+          Fавто1 = ${auto1.toFixed(2)} × ${kc1} × 1 = ${Fauto1.toLocaleString()} ₽<br>
+          Fжд = ${Ksj} × ${Sj} + ${Fv} = ${(Fj).toLocaleString()} ₽<br>
+          Fавто2 = ${auto2.toFixed(2)} × ${kc2} × 1 = ${Fauto2.toLocaleString()} ₽<br>
+          <strong>Итого: ${totalCost.toLocaleString()} ₽</strong>
+        </p>
+      `;
+    }
+
+
+    function calculateSeaTariff() {
+  const resultEl = document.getElementById("seaResult");
+  const transportPassed = !document.getElementById("seaTransportResult")?.textContent.includes("⛔");
+
+  if (!transportPassed) {
+    resultEl.innerHTML = "Морской транспорт не удовлетворяет условию.";
+    return;
+  }
+
+  const selectedSea = JSON.parse(localStorage.getItem("selectedSeaCarrier") || "null");
+  const autoDistances = JSON.parse(localStorage.getItem("seaAutoDistances") || "[]");
+  const selectedCarrier = JSON.parse(localStorage.getItem("selectedCarCarrier") || "null");
+  const kSez = 1;
+
+  if (!selectedSea || autoDistances.length !== 2 || !selectedCarrier) {
+    resultEl.innerHTML = "Недостаточно данных для расчета морского тарифа.";
+    return;
+  }
+
+  function getKcByDistance(carrier, distance) {
+    const entries = Object.entries(carrier.Kc);
+    for (const [range, tariff] of entries) {
+      const num = parseFloat(range.replace(/[<>]/g, ""));
+      if (range.includes("<") && distance < num) return parseFloat(tariff);
+      if (range.includes(">") && distance > num) return parseFloat(tariff);
+    }
+    return parseFloat(entries[entries.length - 1][1]);
+  }
+
+  const kc1 = getKcByDistance(selectedCarrier, autoDistances[0]);
+  const kc2 = getKcByDistance(selectedCarrier, autoDistances[1]);
+
+  const Fauto1 = autoDistances[0] * kc1 * kSez;
+  const Fauto2 = autoDistances[1] * kc2 * kSez;
+
+  const kcm = parseFloat(selectedSea.freightCost) || 0;
+  const kref = parseFloat(selectedSea.reefSurcharge) || 0;
+  const Fsea = kcm + kref;
+
+  const totalCost = Fauto1 + Fsea + Fauto2;
+
+  resultEl.innerHTML = `
+    Автомаршрут 1: ${autoDistances[0].toFixed(2)} км × ${kc1} ₽ = ${Fauto1.toLocaleString()} ₽<br>
+    Автомаршрут 2: ${autoDistances[1].toFixed(2)} км × ${kc2} ₽ = ${Fauto2.toLocaleString()} ₽<br>
+    Стоимость морской перевозки (фрахт + реф): ${Fsea.toLocaleString()} ₽<br>
+    <strong>Итого: ${totalCost.toLocaleString()} ₽</strong>
+  `;
+
+  document.getElementById("sea-info").innerHTML = `
+    <p>
+      Формула: F = Fавто1 + Fмор + Fавто2<br>
+      Fмор = kcm + kref = ${kcm} + ${kref}<br>
+      Итого = ${totalCost.toLocaleString()} ₽
+    </p>
+  `;
+}
+
+
+    function calculateAirTariff() {
+
+      console.log("Начало расчёта авиационного тарифа");
+      try {
+      const resultEl = document.getElementById("airResult");
+      const transportPassed = !document.getElementById("airTransportResult")?.textContent.includes("⛔");
+
+      if (!transportPassed) {
+        resultEl.innerHTML = "Авиационный транспорт не удовлетворяет условию.";
+        return;
+      }
+
+      const selectedCarrier = JSON.parse(localStorage.getItem("selectedAirCarrier") || "null");
+      const autoDistances = JSON.parse(localStorage.getItem("airAutoDistances") || "[]");
+      const selectedProducts = JSON.parse(localStorage.getItem("selectedProducts") || "[]");
+      const selectedCarCarrier = JSON.parse(localStorage.getItem("selectedCarCarrier") || "null");
+
+      if (!selectedCarrier || autoDistances.length !== 2 || selectedProducts.length === 0 || !selectedCarCarrier) {
+        resultEl.innerHTML = "Недостаточно данных для расчёта авиационного тарифа.";
+        return;
+      }
+      console.log("selectedAirCarrier:", selectedCarrier);
+      console.log("selectedCarCarrier:", selectedCarCarrier);
+      console.log("airAutoDistances:", autoDistances);
+      console.log("selectedProducts:", selectedProducts);
+      const kSez = 1;
+
+      // Суммируем массу всех выбранных продуктов
+      const totalMass = selectedProducts.reduce((sum, p) => sum + parseFloat(p.weight || 0), 0);
+
+      // Функция для определения тарифа kc по расстоянию авто
+      function getKcByDistance(carrier, distance) {
+        const entries = Object.entries(carrier.Kc);
+        for (const [range, tariff] of entries) {
+          const num = parseFloat(range.replace(/[<>]/g, ""));
+          if (range.includes("<") && distance < num) return parseFloat(tariff);
+          if (range.includes(">") && distance > num) return parseFloat(tariff);
+        }
+        return parseFloat(entries[entries.length - 1][1]);
+      }
+
+      const [auto1, auto2] = autoDistances.map(Number);
+      const kc1 = getKcByDistance(selectedCarCarrier, auto1);
+      const kc2 = getKcByDistance(selectedCarCarrier, auto2);
+
+      const Fauto1 = auto1 * kc1 * kSez;
+      const Fauto2 = auto2 * kc2 * kSez;
+
+      const kca = parseFloat(selectedCarrier.kca || 0);
+      const kns = parseFloat(selectedCarrier.kns || 0);
+      const cont = parseFloat(selectedCarrier.avcont || 0);
+      const ksbor = parseFloat(selectedCarrier.ksbor || 0);
+
+      const Favia = (kca * totalMass) * (1 + kns / 100) + cont + ksbor;
+
+      const totalCost = Fauto1 + Favia + Fauto2;
+
+      resultEl.innerHTML = `
+        Автомаршрут 1: ${auto1.toFixed(2)} км × ${kc1} ₽ = ${Fauto1.toLocaleString()} ₽<br>
+        Автомаршрут 2: ${auto2.toFixed(2)} км × ${kc2} ₽ = ${Fauto2.toLocaleString()} ₽<br>
+        Масса груза: ${totalMass.toFixed(2)} кг<br>
+        Авиа: (${kca} × ${totalMass.toFixed(2)}) × (1 + ${kns / 100}) + ${cont} + ${ksbor} = ${Favia.toLocaleString()} ₽<br>
+        <strong>Итого: ${totalCost.toLocaleString()} ₽</strong>
+      `;
+
+      document.getElementById("air-info").innerHTML = `
+        <p>
+          Формула: F = Fавто1 + (kca × mгр × (1 + kns/100) + cont + ksbor) + Fавто2<br>
+          Fавто1 = ${auto1.toFixed(2)} × ${kc1} × ${kSez} = ${Fauto1.toLocaleString()} ₽<br>
+          Fавиа = (${kca} × ${totalMass.toFixed(2)}) × (1 + ${kns / 100}) + ${cont} + ${ksbor} = ${Favia.toLocaleString()} ₽<br>
+          Fавто2 = ${auto2.toFixed(2)} × ${kc2} × ${kSez} = ${Fauto2.toLocaleString()} ₽<br>
+          <strong>Итого: ${totalCost.toLocaleString()} ₽</strong>
+        </p>
+      `;
+    
+    } catch(e) {
+    console.error("Ошибка в calculateAirTariff:", e);
+        document.getElementById("airResult").innerHTML = "Ошибка в расчёте авиационного тарифа.";
+      }
+   } 
+
+    document.addEventListener("DOMContentLoaded", () => {
+      const btn = document.getElementById("calculateBtn");
+      if (btn) btn.addEventListener("click", calculateAllTariffs);
+    });
+  </script>
 </body>
 </html>

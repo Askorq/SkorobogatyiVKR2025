@@ -268,7 +268,7 @@ function drawAviationRoute() {
           routeActiveStrokeWidth: 6,
           routeActiveOpacity: 0.9
         });
-
+        
 
         map.geoObjects.add(multiRoute);
         routeLines[i] = multiRoute;
@@ -293,8 +293,18 @@ function drawAviationRoute() {
             document.getElementById("routes").appendChild(div);
           }
         });
+        multiRoute.model.events.add('requestsuccess', function () {
+        const activeRoute = multiRoute.getActiveRoute();
+        if (activeRoute) {
+          const distance = (activeRoute.properties.get("distance").value / 1000).toFixed(2);
+          let airAutoDistances = JSON.parse(localStorage.getItem("airAutoDistances") || "[]");
+          airAutoDistances[i - 1] = parseFloat(distance);
+          localStorage.setItem("airAutoDistances", JSON.stringify(airAutoDistances));
+        }
+      });
+        };
       }
-    }
+    
 
     function calculateTotalTransportTime() {
       const selectedCarrier = JSON.parse(localStorage.getItem("selectedAirCarrier") || "null");
@@ -393,6 +403,7 @@ function drawAviationRoute() {
         document.addEventListener('DOMContentLoaded', () => {
           renderAirCarrierTable();
         });
+      
 
         
   </script>
